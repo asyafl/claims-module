@@ -1,0 +1,267 @@
+<div class="page-container">
+  <div class="page-header">
+    <button mat-icon-button routerLink="/claims"><mat-icon>arrow_back</mat-icon></button>
+    <h1>Log New Claim (FNOL)</h1>
+  </div>
+
+  <mat-stepper linear #stepper orientation="horizontal">
+
+    <!-- ───── STEP 1: Policy & Loss ───── -->
+    <mat-step [stepControl]="step1" label="Policy & Loss Details">
+      <form [formGroup]="step1" class="step-form">
+
+        <!-- Policy search -->
+        <mat-card class="section-card">
+          <h3>Policy</h3>
+          <ng-container *ngIf="!selectedPolicy; else policySelected">
+            <mat-form-field appearance="outline" style="width:100%">
+              <mat-label>Search policy number or client name</mat-label>
+              <input matInput formControlName="policySearch" [matAutocomplete]="auto">
+              <mat-icon matSuffix>search</mat-icon>
+              <mat-autocomplete #auto="matAutocomplete">
+                <mat-option *ngFor="let p of policyResults" [value]="p.policyNumber" (click)="selectPolicy(p)">
+                  <strong>{{ p.policyNumber }}</strong> — {{ p.clientName }}
+                  <span class="policy-dates"> ({{ p.effectiveDate | date:'dd MMM yyyy' }} – {{ p.expirationDate | date:'dd MMM yyyy' }})</span>
+                </mat-option>
+              </mat-autocomplete>
+            </mat-form-field>
+            <mat-checkbox formControlName="unknownPolicy" color="primary">Proceed without policy (unknown policy)</mat-checkbox>
+          </ng-container>
+
+          <ng-template #policySelected>
+            <div class="selected-policy">
+              <div class="policy-info">
+                <strong>{{ selectedPolicy!.policyNumber }}</strong> — {{ selectedPolicy!.clientName }}
+                <span class="policy-dates">{{ selectedPolicy!.effectiveDate | date:'dd MMM yyyy' }} – {{ selectedPolicy!.expirationDate | date:'dd MMM yyyy' }}</span>
+                <ng-container [ngSwitch]="isPolicyInForce()">
+                  <span *ngSwitchCase="true" class="badge-green">In force on loss date</span>
+                  <span *ngSwitchCase="false" class="badge-amber">⚠ Outside policy period</span>
+                </ng-container>
+              </div>
+              <button mat-icon-button (click)="clearPolicy()" matTooltip="Change policy"><mat-icon>close</mat-icon></button>
+            </div>
+          </ng-template>
+        </mat-card>
+
+        <!-- Loss details -->
+        <mat-card class="section-card">
+          <h3>Loss Details</h3>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="field-half">
+              <mat-label>Loss Date *</mat-label>
+              <input matInput [matDatepicker]="dp" formControlName="lossDate" [max]="today">
+              <mat-datepicker-toggle matSuffix [for]="dp"></mat-datepicker-toggle>
+              <mat-datepicker #dp></mat-datepicker>
+              <mat-error>Loss date is required and cannot be in the future</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="field-half">
+              <mat-label>Cause of Loss *</mat-label>
+              <mat-select formControlName="causeOfLossCode">
+                <mat-option *ngFor="let c of causeCodes" [value]="c.code">{{ c.name }} ({{ c.code }})</mat-option>
+              </mat-select>
+              <mat-error>Cause of loss is required</mat-error>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" style="width:100%">
+            <mat-label>Loss Description * (min 20 characters)</mat-label>
+            <textarea matInput formControlName="lossDescription" rows="3" maxlength="2000"></textarea>
+            <mat-hint>{{ step1.get('lossDescription')?.value?.length ?? 0 }}/20 min chars</mat-hint>
+            <mat-error>Loss description is required (min 20 characters)</mat-error>
+          </mat-form-field>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="field-half">
+              <mat-label>Loss Location</mat-label>
+              <input matInput formControlName="lossLocation">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="field-quarter">
+              <mat-label>Estimated Loss Amount ($)</mat-label>
+              <input matInput type="number" formControlName="estimatedLossAmount" min="0">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="field-quarter">
+              <mat-label>Police Report #</mat-label>
+              <input matInput formControlName="policeReportNumber">
+            </mat-form-field>
+          </div>
+        </mat-card>
+
+        <div class="step-actions">
+          <button mat-raised-button color="primary" matStepperNext [disabled]="step1.invalid">
+            Next <mat-icon>arrow_forward</mat-icon>
+          </button>
+        </div>
+      </form>
+    </mat-step>
+
+    <!-- ───── STEP 2: Parties & Risk Objects ───── -->
+    <mat-step label="Parties & Risk Objects">
+      <form [formGroup]="step2" class="step-form">
+
+        <mat-card class="section-card">
+          <div class="section-header">
+            <h3>Parties</h3>
+            <button mat-stroked-button type="button" (click)="addParty()">
+              <mat-icon>person_add</mat-icon> Add Party
+            </button>
+          </div>
+          <div *ngIf="!hasClaimant()" class="warn-banner">
+            ⚠ At least one Claimant is required to open the claim.
+          </div>
+
+          <div formArrayName="parties">
+            <mat-card *ngFor="let p of parties.controls; let i=index" [formGroupName]="i" class="item-card">
+              <div class="item-header">
+                <strong>Party {{ i+1 }}</strong>
+                <button mat-icon-button type="button" (click)="removeParty(i)" [disabled]="parties.length === 1">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="field-quarter">
+                  <mat-label>Role</mat-label>
+                  <mat-select formControlName="partyRole">
+                    <mat-option *ngFor="let r of partyRoles" [value]="r">{{ r }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field-quarter">
+                  <mat-label>Type</mat-label>
+                  <mat-select formControlName="partyType">
+                    <mat-option *ngFor="let t of partyTypes" [value]="t">{{ t }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field-quarter">
+                  <mat-label>First Name</mat-label>
+                  <input matInput formControlName="firstName">
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field-quarter">
+                  <mat-label>Last Name</mat-label>
+                  <input matInput formControlName="lastName">
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="field-half">
+                  <mat-label>Email</mat-label>
+                  <input matInput formControlName="email" type="email">
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field-half">
+                  <mat-label>Phone</mat-label>
+                  <input matInput formControlName="phone">
+                </mat-form-field>
+              </div>
+            </mat-card>
+          </div>
+        </mat-card>
+
+        <mat-card class="section-card">
+          <div class="section-header">
+            <h3>Risk Objects</h3>
+            <button mat-stroked-button type="button" (click)="addRiskObject()">
+              <mat-icon>add</mat-icon> Add Risk Object
+            </button>
+          </div>
+
+          <div formArrayName="riskObjects">
+            <mat-card *ngFor="let r of riskObjects.controls; let i=index" [formGroupName]="i" class="item-card">
+              <div class="item-header">
+                <strong>Risk Object {{ i+1 }}</strong>
+                <button mat-icon-button type="button" (click)="removeRiskObject(i)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="field-quarter">
+                  <mat-label>Asset Type</mat-label>
+                  <mat-select formControlName="assetType">
+                    <mat-option *ngFor="let t of assetTypes" [value]="t">{{ t }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field-half">
+                  <mat-label>Asset Description *</mat-label>
+                  <input matInput formControlName="assetDescription">
+                  <mat-error>Required</mat-error>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field-quarter">
+                  <mat-label>Reference (VIN, etc.)</mat-label>
+                  <input matInput formControlName="assetReference">
+                </mat-form-field>
+              </div>
+              <mat-form-field appearance="outline" style="width:100%">
+                <mat-label>Damage Description</mat-label>
+                <textarea matInput formControlName="damageDescription" rows="2"></textarea>
+              </mat-form-field>
+            </mat-card>
+          </div>
+        </mat-card>
+
+        <div class="step-actions">
+          <button mat-stroked-button matStepperPrevious><mat-icon>arrow_back</mat-icon> Back</button>
+          <button mat-raised-button color="primary" matStepperNext [disabled]="!hasClaimant()">
+            Next <mat-icon>arrow_forward</mat-icon>
+          </button>
+        </div>
+      </form>
+    </mat-step>
+
+    <!-- ───── STEP 3: Reserve & Review ───── -->
+    <mat-step label="Initial Reserve & Review">
+      <form [formGroup]="step3" class="step-form">
+
+        <mat-card class="section-card">
+          <h3>Initial Reserve (optional)</h3>
+          <mat-checkbox formControlName="addReserve" color="primary">Add an initial reserve</mat-checkbox>
+
+          <ng-container *ngIf="step3.value.addReserve">
+            <div class="form-row" style="margin-top:16px">
+              <mat-form-field appearance="outline" class="field-half">
+                <mat-label>Reserve Component</mat-label>
+                <mat-select formControlName="component">
+                  <mat-option *ngFor="let c of reserveComponents" [value]="c">{{ c }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="field-half">
+                <mat-label>Amount ($)</mat-label>
+                <input matInput type="number" formControlName="amount" min="0.01" step="0.01">
+              </mat-form-field>
+            </div>
+            <div class="authority-indicator" [class]="reserveAuthorityClass()">
+              {{ reserveAuthority() }}
+            </div>
+            <mat-form-field appearance="outline" style="width:100%;margin-top:12px">
+              <mat-label>Change Reason</mat-label>
+              <input matInput formControlName="changeReason">
+            </mat-form-field>
+          </ng-container>
+        </mat-card>
+
+        <!-- Review summary -->
+        <mat-card class="section-card review-card">
+          <h3>Review Summary</h3>
+          <table class="review-table">
+            <tr><td>Policy</td><td>{{ selectedPolicy?.policyNumber ?? 'Unknown' }} — {{ selectedPolicy?.clientName }}</td></tr>
+            <tr><td>Loss Date</td><td>{{ step1.value.lossDate | date:'dd MMM yyyy' }}</td></tr>
+            <tr><td>Cause of Loss</td><td>{{ step1.value.causeOfLossCode }}</td></tr>
+            <tr><td>Description</td><td>{{ step1.value.lossDescription }}</td></tr>
+            <tr><td>Location</td><td>{{ step1.value.lossLocation || '—' }}</td></tr>
+            <tr><td>Parties</td><td>{{ parties.length }} party/parties</td></tr>
+            <tr><td>Risk Objects</td><td>{{ riskObjects.length }} object(s)</td></tr>
+            <tr *ngIf="step3.value.addReserve">
+              <td>Initial Reserve</td>
+              <td>{{ step3.value.component }} — ${{ step3.value.amount | number:'1.2-2' }}</td>
+            </tr>
+          </table>
+        </mat-card>
+
+        <div class="step-actions">
+          <button mat-stroked-button matStepperPrevious><mat-icon>arrow_back</mat-icon> Back</button>
+          <button mat-raised-button color="accent" (click)="submit()" [disabled]="submitting || step1.invalid">
+            <mat-spinner *ngIf="submitting" diameter="20" style="display:inline-block;margin-right:8px"></mat-spinner>
+            Create Claim
+          </button>
+        </div>
+      </form>
+    </mat-step>
+
+  </mat-stepper>
+</div>

@@ -1,0 +1,38 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$primary: mat.m2-define-palette(mat.$m2-indigo-palette);
+$accent:  mat.m2-define-palette(mat.$m2-deep-orange-palette, A200, A100, A400);
+$warn:    mat.m2-define-palette(mat.$m2-red-palette);
+
+$theme: mat.m2-define-light-theme((
+  color: (primary: $primary, accent: $accent, warn: $warn),
+  typography: mat.m2-define-typography-config(),
+  density: 0
+));
+
+@include mat.all-component-themes($theme);
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  background: #f5f7fa;
+  color: #212121;
+}
+
+.mat-toolbar { position: sticky; top: 0; z-index: 100; }
+
+.snack-error .mat-snack-bar-container { background: #d32f2f; color: white; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
+
+/* Material overrides */
+.mat-mdc-card { border-radius: 8px !important; }
+.mat-mdc-form-field { font-size: 14px; }

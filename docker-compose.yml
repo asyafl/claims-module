@@ -1,0 +1,55 @@
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: src/ClaimsModule.API/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Default=Server=db,1433;Database=ClaimsModule;User Id=sa;Password=Claims@Module123!;TrustServerCertificate=True;
+      - StorageProvider=LocalFileSystem
+      - LocalStorage__BasePath=/app/uploads
+      - Jwt__Secret=claims-module-super-secret-key-minimum-256-bits-long
+      - Jwt__Issuer=claims-module
+      - Jwt__Audience=claims-module
+      - OrganisationId=00000000-0000-0000-0000-000000000001
+      - Hangfire__Dashboard=true
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "4201:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Claims@Module123!
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Claims@Module123!' -Q 'SELECT 1' -No -C || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  sqldata:
+  uploads:

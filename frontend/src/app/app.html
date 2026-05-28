@@ -1,0 +1,20 @@
+<mat-toolbar color="primary" *ngIf="authService.isLoggedIn()">
+  <span routerLink="/claims" style="cursor:pointer;font-weight:600;font-size:18px;">⚡ Claims Module</span>
+  <span style="flex:1"></span>
+  <span style="display:flex;align-items:center;gap:8px;font-size:14px;margin-right:4px;">
+    {{ authService.user()?.email }}
+    <span class="role-badge">{{ authService.user()?.role | uppercase }}</span>
+  </span>
+  <button mat-icon-button [matMenuTriggerFor]="userMenu">
+    <mat-icon>more_vert</mat-icon>
+  </button>
+  <mat-menu #userMenu="matMenu">
+    <button mat-menu-item (click)="authService.logout()">
+      <mat-icon>logout</mat-icon> Logout
+    </button>
+  </mat-menu>
+</mat-toolbar>
+
+<div class="app-content">
+  <router-outlet></router-outlet>
+</div>

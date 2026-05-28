@@ -1,0 +1,13 @@
+.role-badge {
+  background: rgba(255,255,255,0.25);
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.app-content {
+  min-height: calc(100vh - 64px);
+  background: #f5f7fa;
+}

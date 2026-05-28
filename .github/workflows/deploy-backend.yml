@@ -1,0 +1,55 @@
+name: Deploy Backend to Azure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:   # дозволяє запустити вручну з GitHub UI
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  PROJECT_PATH: backend/src/ClaimsModule.API/ClaimsModule.API.csproj
+  MIGRATIONS_PROJECT: backend/src/ClaimsModule.Persistence/ClaimsModule.Persistence.csproj
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.PROJECT_PATH }}
+
+      - name: Build
+        run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
+
+      - name: Run EF Core migrations
+        run: |
+          dotnet ef database update \
+            --project ${{ env.MIGRATIONS_PROJECT }} \
+            --startup-project ${{ env.PROJECT_PATH }} \
+            --connection "${{ secrets.AZURE_SQL_CONNECTION_STRING }}"
+        env:
+          ASPNETCORE_ENVIRONMENT: Production
+
+      - name: Publish
+        run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o ./publish
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_APP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish

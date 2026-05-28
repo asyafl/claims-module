@@ -1,0 +1,35 @@
+.page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+.page-header {
+  display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;
+  h1 { margin: 0; font-size: 28px; font-weight: 600; color: #1a237e; }
+  .subtitle { margin: 4px 0 0; color: #666; font-size: 14px; }
+}
+
+.filter-card { margin-bottom: 16px; padding: 16px; }
+.filter-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.filter-field { flex: 1; min-width: 160px; max-width: 240px; }
+
+.table-card { overflow: hidden; }
+.table-wrapper { position: relative; min-height: 200px; }
+.claims-table { width: 100%; }
+.claims-table.loading { opacity: 0.5; }
+.spinner { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 10; }
+
+.clickable-row { cursor: pointer; transition: background 0.15s; }
+.clickable-row:hover { background: #e8eaf6; }
+
+.claim-number { color: #1976d2; font-family: monospace; font-size: 13px; }
+
+.status-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 12px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+
+.num-col { text-align: right; }
+
+.empty-state {
+  text-align: center; padding: 60px 20px; color: #999;
+  mat-icon { font-size: 48px; width: 48px; height: 48px; }
+  p { margin: 12px 0; font-size: 16px; }
+}

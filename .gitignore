@@ -1,0 +1,40 @@
+# .NET
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+**/TestResults/
+*.nupkg
+
+# EF migrations snapshots (generated)
+# Keep migrations but ignore local override
+
+# Node / Angular
+**/node_modules/
+**/dist/
+**/.angular/
+**/coverage/
+
+# Environment / secrets
+**/appsettings.*.json
+!**/appsettings.json
+!**/appsettings.Development.json
+*.env
+.env.*
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.suo
+*.swp
+*~
+
+# Uploads (local storage)
+uploads/
