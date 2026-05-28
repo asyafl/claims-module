@@ -11,6 +11,8 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout code
@@ -39,3 +41,4 @@ jobs:
           action: upload
           app_location: frontend
           output_location: dist/frontend/browser
+          skip_app_build: true
