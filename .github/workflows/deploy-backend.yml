@@ -6,7 +6,7 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/deploy-backend.yml'
-  workflow_dispatch:   # дозволяє запустити вручну з GitHub UI
+  workflow_dispatch:
 
 env:
   DOTNET_VERSION: '9.0.x'
@@ -29,27 +29,29 @@ jobs:
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef
 
-      - name: Restore dependencies
+      - name: Restore
         run: dotnet restore ${{ env.PROJECT_PATH }}
 
       - name: Build
-        run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
+        run: dotnet build ${{ env.PROJECT_PATH }} -c Release --no-restore
 
-      - name: Run EF Core migrations
+      - name: Run EF migrations
         run: |
           dotnet ef database update \
             --project ${{ env.MIGRATIONS_PROJECT }} \
             --startup-project ${{ env.PROJECT_PATH }} \
             --connection "${{ secrets.AZURE_SQL_CONNECTION_STRING }}"
-        env:
-          ASPNETCORE_ENVIRONMENT: Production
 
       - name: Publish
         run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o ./publish
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_APP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./publish
